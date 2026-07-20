@@ -311,7 +311,7 @@ function calcSPC(){
   fsActual=pDesign>0?Qult/pDesign:0;
   var designOk=pDesign>0?fsActual>=fsRequired:false;
 
-  document.getElementById('spc-diagram').innerHTML=buildSPCDiagram(D,L,Qs,Qp,methodLabel);
+  if(window.JRH && JRH.diagram) document.getElementById('spc-diagram').innerHTML=buildSPCDiagram(D,L,Qs,Qp,methodLabel);
 
   document.getElementById('spc-result').innerHTML=
     '<table><tr><th>項目</th><th>數值</th></tr>'+
