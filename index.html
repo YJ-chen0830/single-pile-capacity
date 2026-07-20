@@ -178,6 +178,7 @@
 
   <div class="card" data-tab="spc-r">
     <h2>計算結果</h2>
+    <div id="spc-diagram"></div>
     <div id="spc-result"><p style="color:#888">尚未計算</p></div>
     <details class="proc" id="spc-proc-1" style="display:none">
       <summary>📋 幾何量計算過程</summary>
@@ -228,6 +229,39 @@ function statusHtml(ok){
   return ok?'<span class="status-chip ok">OK</span>':'<span class="status-chip ng">NG</span>';
 }
 
+/* 單樁土層剖面示意圖：等比例尺畫出樁長方向的土層與樁身（樁徑用固定像素加粗
+   顯示，否則相對樁長會細到看不見，圖說已註明「比例尺概略」）。樁身兩側箭頭
+   表示摩擦力 Qs 沿樁身分布的方向，樁底箭頭表示端承反力 Qp。 */
+function buildSPCDiagram(Dp,L,Qs,Qp,methodLabel){
+  var W=460,H=300;
+  var topPad=42,bottomPad=44,leftPad=60,rightPad=60;
+  var drawH=H-topPad-bottomPad;
+  var scale=drawH/L;
+  var glY=topPad, tipY=topPad+L*scale;
+  var cx=W/2, pileVisW=22;
+  var soilX1=leftPad, soilX2=W-rightPad;
+
+  var D=JRH.diagram, s='';
+  s+=D.label(14,16,'單樁土層剖面示意圖（比例尺概略，樁徑加粗顯示）',{anchor:'start',size:9,color:'#8a8370'});
+  s+='<rect x="'+soilX1+'" y="'+glY+'" width="'+(soilX2-soilX1)+'" height="'+(tipY-glY+16)+'" fill="url(#jrhSoil)" stroke="#8a7a5c" stroke-width="1"/>';
+  s+='<line x1="'+(soilX1-6)+'" y1="'+glY+'" x2="'+(soilX2+6)+'" y2="'+glY+'" stroke="#0b1f3a" stroke-width="1.5"/>';
+  s+=D.label(soilX1-6,glY-8,'地表 GL',{anchor:'start',size:8.5,color:'#0b1f3a',weight:'700'});
+  s+=D.label(soilX2+6,glY-8,methodLabel,{anchor:'end',size:8.5,color:'#0b1f3a',weight:'700'});
+  s+='<rect x="'+(cx-pileVisW/2)+'" y="'+glY+'" width="'+pileVisW+'" height="'+(tipY-glY)+'" fill="url(#jrhConcrete)" stroke="#0b1f3a" stroke-width="1.4"/>';
+  var rows=4;
+  for(var i=1;i<=rows;i++){
+    var y=glY+(tipY-glY)*i/(rows+1);
+    s+=D.arrow(cx-pileVisW/2-8, y+10, cx-pileVisW/2-8, y-6, {color:'#c0392b',width:1.3});
+    s+=D.arrow(cx+pileVisW/2+8, y+10, cx+pileVisW/2+8, y-6, {color:'#c0392b',width:1.3});
+  }
+  s+=D.label(cx-pileVisW/2-14, glY+(tipY-glY)/2, 'Qs='+Qs.toFixed(1)+' kN', {anchor:'end',size:9,color:'#c0392b',weight:'700'});
+  s+=D.arrow(cx, tipY+24, cx, tipY+2, {color:'#c0392b',width:2.2});
+  s+=D.label(cx, tipY+36, 'Qp='+Qp.toFixed(1)+' kN', {size:9,color:'#c0392b',weight:'700'});
+  s+=D.dim(cx+pileVisW/2+34, glY, cx+pileVisW/2+34, tipY, 'L='+L.toFixed(1)+'m', {color:'#5c5442'});
+  s+=D.label(cx, glY-20, 'D='+Dp.toFixed(2)+'m', {size:8.5,color:'#5c5442'});
+  return D.wrap(W,H,s,{maxWidth:420});
+}
+
 function calcSPC(){
   var D=v('spc-D'), L=v('spc-L'), fsRequired=v('spc-fs-req'), pDesign=v('spc-Pdesign');
   var method=document.getElementById('spc-method').value;
@@ -237,6 +271,7 @@ function calcSPC(){
   var resultNote='', proc2='', methodLabel='';
 
   if(D<=0 || L<=0 || fsRequired<=0){
+    document.getElementById('spc-diagram').innerHTML='';
     document.getElementById('spc-result').innerHTML='<p class="ng">請確認樁徑、樁長與安全係數皆大於 0。</p>';
     return;
   }
@@ -275,6 +310,8 @@ function calcSPC(){
   Qallow=Qult/fsRequired;
   fsActual=pDesign>0?Qult/pDesign:0;
   var designOk=pDesign>0?fsActual>=fsRequired:false;
+
+  document.getElementById('spc-diagram').innerHTML=buildSPCDiagram(D,L,Qs,Qp,methodLabel);
 
   document.getElementById('spc-result').innerHTML=
     '<table><tr><th>項目</th><th>數值</th></tr>'+
