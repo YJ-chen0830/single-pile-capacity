@@ -185,6 +185,9 @@
     </div>
     <label>設計荷重 P_design (kN，選填)</label>
     <input id="spc-Pdesign" type="number" value="0" step="1" min="0">
+    <label>液化折減係數 fL（摩擦力 Qs 折減，0~1；如樁身穿越可能液化土層，請參考「土壤液化評估」工具之 FS_liq 並依規範由工程師判斷取值，未液化或不需折減請維持 1.0）</label>
+    <input id="spc-fL" type="number" value="1.0" step="0.05" min="0" max="1">
+    <div id="spc-fL-ref" style="font-size:11.5px;color:#888;margin-top:4px;"></div>
 
     <button class="calc-btn" onclick="calcSPC()">計算單樁軸向承載力</button>
     <div class="note">本工具為單樁自身軸向承載力初估，對應「單樁先求容量、再進群樁檢核」的前一設計步驟。若要評估群樁效率或群樁沉陷，請改用「基樁群樁效率與沉陷」工具；該工具處理群樁相互作用，與本工具用途不同。本工具未考慮分層土壤逐層加總、負摩擦力、群樁效應、樁身結構強度與載重試驗驗證，正式設計仍應由大地工程技師依詳細土層資料複核。</div>
@@ -360,6 +363,15 @@ function calcSPC(){
     proc2+='  Qp = σv\'tip × Nq × Ap = '+f2(sigmaTip)+' × '+f2(Nq)+' × '+f3(Ap)+' = '+f2(Qp)+' kN\n';
   }
 
+  var fL=v('spc-fL'); if(!(fL>=0 && fL<=1)) fL=1.0;
+  var QsBeforeFL=Qs;
+  Qs=Qs*fL;
+  if(fL<1.0){
+    proc2+='\n【液化折減】\n';
+    proc2+='  fL = '+f3(fL)+'（由使用者依「土壤液化評估」結果與適用規範判斷取值）\n';
+    proc2+='  Qs（折減後） = Qs × fL = '+f2(QsBeforeFL)+' × '+f3(fL)+' = '+f2(Qs)+' kN\n';
+  }
+
   Qult=Qs+Qp;
   Qallow=Qult/fsRequired;
   fsActual=pDesign>0?Qult/pDesign:0;
@@ -372,7 +384,9 @@ function calcSPC(){
     '<tr><td>計算方法</td><td>'+methodLabel+'</td></tr>'+
     '<tr><td>樁周表面積 As = πDL</td><td>'+f3(As)+' m²</td></tr>'+
     '<tr><td>樁底端承面積 Ap = πD²/4</td><td>'+f3(Ap)+' m²</td></tr>'+
-    '<tr><td>摩擦力 Qs</td><td>'+f2(Qs)+' kN</td></tr>'+
+    (fL<1.0?'<tr><td>摩擦力 Qs（折減前）</td><td>'+f2(QsBeforeFL)+' kN</td></tr>'+
+    '<tr><td>液化折減係數 fL</td><td>'+f3(fL)+'</td></tr>':'')+
+    '<tr><td>摩擦力 Qs'+(fL<1.0?'（已折減）':'')+'</td><td>'+f2(Qs)+' kN</td></tr>'+
     '<tr><td>端承力 Qp</td><td>'+f2(Qp)+' kN</td></tr>'+
     '<tr><td>極限承載力 Qult = Qs + Qp</td><td>'+f2(Qult)+' kN</td></tr>'+
     '<tr><td>容許承載力 Qallow = Qult / FS_required</td><td>'+f2(Qallow)+' kN</td></tr>'+
@@ -409,6 +423,7 @@ function calcSPC(){
   }
   proc3+='\n【使用限制】\n';
   proc3+='  本工具為簡化單層土估算，未考慮分層土壤逐層加總、負摩擦力、群樁效應、樁身結構強度與載重試驗驗證。\n';
+  proc3+='  液化折減係數 fL 為使用者手動輸入值，本工具不會依 FS_liq 自動反算折減比例，實際取值應依適用規範與工程師判斷為準。\n';
 
   document.getElementById('spc-proc-1-text').textContent=proc1;
   document.getElementById('spc-proc-2-text').textContent=proc2;
@@ -610,6 +625,21 @@ applyLateralDefaults();
 if(new URLSearchParams(location.search).get('mode')==='lateral'){
   switchPileMode('lateral');
 }
+
+function jrhTryInbound(){
+  if(!(window.JRH && JRH.showInboundBanner))return;
+  JRH.showInboundBanner('sla','土壤液化評估',function(data){
+    var ref=document.getElementById('spc-fL-ref');
+    if(data.denseLayer){
+      ref.textContent='參考：土壤液化評估於 z='+data.z+'m 判定 N1_60≥30，視為不液化（緻密土層）。';
+    }else if(data.FS_liq!==null && data.FS_liq!==undefined){
+      ref.textContent='參考：土壤液化評估於 z='+data.z+'m 之 FS_liq = '+data.FS_liq.toFixed(3)+
+        '（需≥1.2 方視為不液化）。fL 請依此結果與適用規範由工程師判斷取值，本工具不自動代入。';
+    }
+  });
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',jrhTryInbound);
+else jrhTryInbound();
 </script>
 <script>
 window.jrhDocMeta={
