@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>單樁軸向承載力計算 | Single Pile Axial Capacity</title>
-<meta name="description" content="α法（黏土）／β法（砂土）計算單樁摩擦力與端承力，含容許承載力驗算。">
+<title>單樁承載力計算（軸向＋橫向） | Single Pile Capacity (Axial + Lateral)</title>
+<meta name="description" content="α法（黏土）／β法（砂土）計算單樁軸向摩擦力與端承力，並內建Broms法橫向承載力頁籤，共用樁徑樁長輸入，含容許承載力驗算。">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_TW">
-<meta property="og:title" content="單樁軸向承載力計算 | 工程計算中心">
-<meta property="og:description" content="α法（黏土）／β法（砂土）計算單樁摩擦力與端承力，含容許承載力驗算。">
+<meta property="og:title" content="單樁承載力計算（軸向＋橫向） | 工程計算中心">
+<meta property="og:description" content="α法（黏土）／β法（砂土）計算單樁軸向摩擦力與端承力，並內建Broms法橫向承載力頁籤，共用樁徑樁長輸入，含容許承載力驗算。">
 <meta property="og:url" content="https://yj-chen0830.github.io/single-pile-capacity/">
 <meta property="og:image" content="https://yj-chen0830.github.io/engineering-hub/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="單樁軸向承載力計算 | 工程計算中心">
-<meta name="twitter:description" content="α法（黏土）／β法（砂土）計算單樁摩擦力與端承力，含容許承載力驗算。">
+<meta name="twitter:title" content="單樁承載力計算（軸向＋橫向） | 工程計算中心">
+<meta name="twitter:description" content="α法（黏土）／β法（砂土）計算單樁軸向摩擦力與端承力，並內建Broms法橫向承載力頁籤，共用樁徑樁長輸入，含容許承載力驗算。">
 <meta name="twitter:image" content="https://yj-chen0830.github.io/engineering-hub/og-image.png">
 <script src="https://yj-chen0830.github.io/jrh-core/jrh-core.js?v=3" defer></script>
 <style>
@@ -61,6 +61,14 @@
   .subtle{color:#7b7467;font-size:12px;}
   .method-block{display:none;}
   .method-block.show{display:block;}
+  .hidden{display:none;}
+  .warn{font-size:11.5px;line-height:1.75;border-radius:6px;padding:9px 12px;color:#6a4f17;background:#fbf5e7;border:1px solid #ead8ac;margin-top:12px;}
+  .soil-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;}
+  .soil-clay{background:#f0e2d2;color:#825b38;}
+  .soil-sand{background:#f4ead3;color:#977027;}
+  .mode-toggle{display:flex;gap:8px;margin:0 0 20px;}
+  .mode-btn{flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:#666;font-size:13.5px;font-weight:700;cursor:pointer;text-align:center;}
+  .mode-btn.active{border-color:var(--navy);background:var(--navy);color:#fff;}
   @media(max-width:600px){.proj-grid{grid-template-columns:1fr;}}
   .mob-tabs{display:none;}
   @media screen and (max-width:767px){
@@ -80,7 +88,8 @@
     .card h2{font-size:10.5pt!important;padding-bottom:6pt!important;margin-bottom:9pt!important;}
     label{font-size:8pt!important;margin:6pt 0 2pt!important;}
     .sec{font-size:8pt!important;margin:10pt 0 4pt!important;}
-    .note,.help{font-size:7.5pt!important;padding:6pt 9pt!important;}
+    .note,.help,.warn{font-size:7.5pt!important;padding:6pt 9pt!important;}
+    .mode-toggle{display:none!important;}
     table{border:1px solid #bbb!important;border-radius:0!important;margin-top:6pt!important;}
     th{font-size:8pt!important;padding:5pt 7pt!important;background:#0b1f3a!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     td{font-size:8.5pt!important;padding:5pt 7pt!important;}
@@ -98,8 +107,8 @@
 <body data-tool="spc">
 <header>
   <a href="https://yj-chen0830.github.io/engineering-hub/" style="color:var(--gold2);font-size:12.5px;text-decoration:none;display:inline-block;margin-bottom:8px;">← 返回工程計算中心</a>
-  <h1>單樁軸向承載力計算 (Single Pile Axial Capacity)</h1>
-  <span>α法（黏土）／β法（砂土）計算單樁摩擦力與端承力，含容許承載力</span>
+  <h1>單樁承載力計算（軸向＋橫向）</h1>
+  <span>α/β法計算軸向摩擦力與端承力 · Broms法計算橫向承載力 · 共用樁徑樁長</span>
 </header>
 <main>
 
@@ -116,11 +125,16 @@
   </div>
 </div>
 
-<div class="mob-tabs">
+<div class="mode-toggle no-print">
+  <button type="button" class="mode-btn active" id="modeBtnAxial" onclick="switchPileMode('axial')">↕️ 軸向承載力</button>
+  <button type="button" class="mode-btn" id="modeBtnLateral" onclick="switchPileMode('lateral')">↔️ 橫向承載力（Broms法）</button>
+</div>
+
+<div class="mob-tabs" id="axialMobTabs">
   <button class="mob-tab active" onclick="switchMobTab('spc-in',this)">📋 輸入參數</button>
   <button class="mob-tab" id="mobTab-spc-r" onclick="switchMobTab('spc-r',this)">📊 計算結果</button>
 </div>
-<div class="grid">
+<div class="grid" id="modeAxial">
   <div class="card mob-active" data-tab="spc-in">
     <h2>輸入參數</h2>
 
@@ -196,6 +210,46 @@
   </div>
 </div>
 
+<div class="mob-tabs" id="lateralMobTabs" style="display:none;">
+  <button class="mob-tab active" onclick="switchMobTab('lat-in',this)">📋 輸入參數</button>
+  <button class="mob-tab" id="mobTab-lat-r" onclick="switchMobTab('lat-r',this)">📊 計算結果</button>
+</div>
+<div class="grid" id="modeLateral" style="display:none;">
+  <div class="card mob-active" data-tab="lat-in">
+    <h2>橫向受荷樁參數（Broms法）</h2>
+    <div class="note" style="margin-top:0;">樁徑 D、樁長 L 沿用「軸向承載力」頁籤的輸入：目前 D=<strong id="lat-D-display">—</strong> m，L=<strong id="lat-L-display">—</strong> m。要調整請切換回軸向承載力頁籤修改，兩個頁籤共用同一支樁的幾何資料。</div>
+    <label>土壤類型（橫向分析）</label>
+    <select id="lat-soil" onchange="applyLateralDefaults()">
+      <option value="clay">黏土 cohesive soil</option>
+      <option value="sand">砂土 cohesionless soil</option>
+    </select>
+    <div class="row2">
+      <div id="lat-field-cu"><label>不排水剪力強度 Cu (kPa)</label><input id="lat-Cu" type="number" value="50" step="1" min="1"></div>
+      <div id="lat-field-gamma" class="hidden"><label>土壤單位重 γ (kN/m³)</label><input id="lat-gamma" type="number" value="18" step="0.5" min="1"></div>
+      <div id="lat-field-phi" class="hidden"><label>有效摩擦角 φ (°)</label><input id="lat-phi" type="number" value="32" step="1" min="1" max="50"></div>
+      <div><label>荷重作用點距地表高度 e (m)</label><input id="lat-e" type="number" value="0.5" step="0.1"></div>
+    </div>
+    <div class="sec">設計參數</div>
+    <div class="row2">
+      <div><label>安全係數 FS</label><input id="lat-FS" type="number" value="2.5" step="0.1" min="0.1"></div>
+      <div><label>長細比 L/D（自動判讀）</label><input id="lat-slenderness" readonly></div>
+    </div>
+    <button class="calc-btn" onclick="calcLateral()">計算橫向承載力</button>
+    <div class="note">本檢核採 Broms (1964) 自由樁頭短剛性樁簡化法，計算樁之側向極限承載力 Pu 與容許橫向承載力 Pallow，與軸向承載力檢核為同一支樁的互補檢核（實務上通常兩者都要查核）。</div>
+    <div class="warn">適用性提醒：本工具僅適用短剛性樁。若樁身相對柔性或屬長樁行為，應改用彈性地基梁法或 p-y 法分析。可作粗略提醒：L/D &lt; 10 常可視為短樁，但這不是嚴謹判準。</div>
+  </div>
+
+  <div class="card" data-tab="lat-r">
+    <h2>橫向承載力計算結果</h2>
+    <div id="lat-result"><p style="color:#888">尚未計算</p></div>
+    <details class="proc" id="lat-proc" style="display:none">
+      <summary>📋 計算過程（供第三方檢核）</summary>
+      <pre id="lat-proc-text"></pre>
+    </details>
+    <button class="pro-btn no-print" onclick="openProLateral()">📄 產出計算書 PDF</button>
+  </div>
+</div>
+
 </main>
 <script>
 function switchMobTab(name,btn){
@@ -205,7 +259,7 @@ function switchMobTab(name,btn){
     c.classList.toggle('mob-active',c.dataset.tab===name);
   });
 }
-function openPro(){ JRH.checkEmail(function(){ jrhPrint('單樁軸向承載力計算書'); }); }
+function openPro(){ window.jrhDocMeta.doc='單樁軸向承載力計算書'; JRH.checkEmail(function(){ jrhPrint('單樁軸向承載力計算書'); }); }
 function v(id){return parseFloat(document.getElementById(id).value)||0;}
 function f1(x){return x.toFixed(1);}
 function f2(x){return x.toFixed(2);}
@@ -366,18 +420,210 @@ function calcSPC(){
 }
 
 toggleMethodFields();
+
+/* ── 模式切換：軸向承載力 vs 橫向承載力（Broms法，2026-07 併入本工具） ──
+   兩個模式共用同一支樁的樁徑(spc-D)與樁長(spc-L)，橫向模式不重複問這兩個值。 */
+function switchPileMode(mode){
+  var isAxial=mode==='axial';
+  document.getElementById('modeAxial').style.display=isAxial?'':'none';
+  document.getElementById('axialMobTabs').style.display=isAxial?'':'none';
+  document.getElementById('modeLateral').style.display=isAxial?'none':'';
+  document.getElementById('lateralMobTabs').style.display=isAxial?'none':'';
+  document.getElementById('modeBtnAxial').classList.toggle('active',isAxial);
+  document.getElementById('modeBtnLateral').classList.toggle('active',!isAxial);
+  if(!isAxial)updateLateralSlenderness();
+}
+
+/* ── 橫向受荷樁極限承載力（原「橫向受荷樁極限承載力計算（Broms法）」工具，
+   2026-07 併入本工具，樁徑/樁長改為沿用軸向頁籤的 spc-D/spc-L） ── */
+var LATERAL_DEFAULTS={
+  clay:{Cu:50,gamma:18,phi:32,e:0.5,FS:2.5},
+  sand:{Cu:50,gamma:18,phi:32,e:0.5,FS:2.5}
+};
+function setVal(id,val){document.getElementById(id).value=val;}
+
+function updateLateralSoilFields(){
+  var soil=document.getElementById('lat-soil').value;
+  document.getElementById('lat-field-cu').classList.toggle('hidden',soil!=='clay');
+  document.getElementById('lat-field-gamma').classList.toggle('hidden',soil!=='sand');
+  document.getElementById('lat-field-phi').classList.toggle('hidden',soil!=='sand');
+}
+function updateLateralSlenderness(){
+  var D=v('spc-D'), L=v('spc-L');
+  document.getElementById('lat-slenderness').value=D>0?f2(L/D):'';
+  document.getElementById('lat-D-display').textContent=D>0?f2(D):'—';
+  document.getElementById('lat-L-display').textContent=L>0?f2(L):'—';
+}
+function applyLateralDefaults(){
+  var soil=document.getElementById('lat-soil').value;
+  var d=LATERAL_DEFAULTS[soil];
+  setVal('lat-Cu',d.Cu);
+  setVal('lat-gamma',d.gamma);
+  setVal('lat-phi',d.phi);
+  setVal('lat-e',d.e);
+  setVal('lat-FS',d.FS);
+  updateLateralSoilFields();
+  updateLateralSlenderness();
+}
+function openProLateral(){ window.jrhDocMeta.doc='橫向受荷樁極限承載力計算書'; JRH.checkEmail(function(){ jrhPrint('橫向受荷樁極限承載力計算書'); }); }
+function f4(x){return x.toFixed(4);}
+
+function calcLateral(){
+  var soil=document.getElementById('lat-soil').value;
+  var D=v('spc-D'), L=v('spc-L');
+  var e=v('lat-e'), FS=v('lat-FS');
+  var Cu=v('lat-Cu'), gamma=v('lat-gamma'), phi=v('lat-phi');
+  var denom=e+L;
+  var slender=D>0?L/D:0;
+  var result=document.getElementById('lat-result');
+  var proc=document.getElementById('lat-proc');
+  var procText=document.getElementById('lat-proc-text');
+
+  updateLateralSlenderness();
+
+  if(D<=0||L<=0){
+    result.innerHTML='<p class="ng">請先在「軸向承載力」頁籤輸入有效的樁徑 D（&gt;0）與樁長 L（&gt;0），兩個頁籤共用同一組數值。</p>';
+    proc.style.display='none';
+    return;
+  }
+  if(FS<=0||denom<=0){
+    result.innerHTML='<p class="ng">輸入無效：需滿足 FS &gt; 0，且 (e + L) &gt; 0。</p>';
+    proc.style.display='none';
+    return;
+  }
+  if(soil==='clay'&&Cu<=0){
+    result.innerHTML='<p class="ng">黏土情況需輸入 Cu &gt; 0。</p>';
+    proc.style.display='none';
+    return;
+  }
+  if(soil==='clay'&&L<=1.5*D){
+    result.innerHTML='<p class="ng">黏土情況需滿足公式中的 (L - 1.5D) &gt; 0，請重新檢查樁徑 D 與樁長 L。</p>';
+    proc.style.display='none';
+    return;
+  }
+  if(soil==='sand'&&(gamma<=0||phi<=0||phi>=90)){
+    result.innerHTML='<p class="ng">砂土情況需輸入 γ &gt; 0，且 0 &lt; φ &lt; 90°。</p>';
+    proc.style.display='none';
+    return;
+  }
+
+  var shortPileNote=slender<10
+    ?'<span class="ok">L/D='+f2(slender)+'，接近短樁粗略區間</span>'
+    :'<span class="ng">L/D='+f2(slender)+'，已超過短樁粗略提醒值 10，應審慎評估是否改用 p-y 法</span>';
+
+  var html='', text='';
+
+  if(soil==='clay'){
+    var term=L-1.5*D;
+    var Pu=9*Cu*D*term*term/(2*denom);
+    var Pallow=Pu/FS;
+
+    html='<div class="soil-chip soil-clay">黏土 cohesive soil</div>'
+      +'<table><tr><th>項目</th><th>數值</th></tr>'
+      +'<tr><td>樁徑 D／樁長 L（沿用軸向頁籤）</td><td>'+f2(D)+' m ／ '+f2(L)+' m</td></tr>'
+      +'<tr><td>樁型假設</td><td>自由樁頭短剛性樁</td></tr>'
+      +'<tr><td>長細比提醒</td><td>'+shortPileNote+'</td></tr>'
+      +'<tr><td>極限橫向承載力 Pu</td><td>'+f2(Pu)+' kN</td></tr>'
+      +'<tr><td>安全係數 FS</td><td>'+f2(FS)+'</td></tr>'
+      +'<tr><td>容許橫向承載力 Pallow</td><td>'+f2(Pallow)+' kN</td></tr>'
+      +'</table>';
+
+    text+='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+    text+='  橫向受荷樁極限承載力計算過程（Broms 1964，自由樁頭短剛性樁，黏土）\n';
+    text+='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+    text+='【輸入】\n';
+    text+='  土壤類型 = 黏土 cohesive soil\n';
+    text+='  D = '+D+' m（沿用軸向頁籤）\n';
+    text+='  L = '+L+' m（沿用軸向頁籤）\n';
+    text+='  Cu = '+Cu+' kPa\n';
+    text+='  e = '+e+' m\n';
+    text+='  FS = '+FS+'\n';
+    text+='  L/D = '+f3(slender)+'\n\n';
+    text+='【Broms 黏土公式】\n';
+    text+='  Pu = 9 × Cu × D × (L - 1.5D)^2 / [2 × (e + L)]\n';
+    text+='  (L - 1.5D) = '+L+' - 1.5×'+D+' = '+f3(term)+' m\n';
+    text+='  (e + L) = '+e+' + '+L+' = '+f3(denom)+' m\n';
+    text+='  Pu = 9 × '+Cu+' × '+D+' × ('+f3(term)+')^2 / [2 × '+f3(denom)+']\n';
+    text+='     = '+f3(Pu)+' kN\n\n';
+    text+='【容許橫向承載力】\n';
+    text+='  Pallow = Pu / FS = '+f3(Pu)+' / '+FS+' = '+f3(Pallow)+' kN\n\n';
+    text+='【適用性提醒】\n';
+    text+='  本式適用自由樁頭短剛性樁之簡化估算。\n';
+    text+='  L/D = '+f3(slender)+(slender<10?' < 10，可作為短樁粗略提醒。':' ≥ 10，短樁假定可能不適用，建議改採 p-y 法或彈性地基梁分析。')+'\n';
+    text+='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+  }else{
+    var kpAngle=45+phi/2;
+    var Kp=Math.pow(Math.tan(kpAngle*Math.PI/180),2);
+    var PuSand=0.5*gamma*D*Kp*Math.pow(L,3)/denom;
+    var PallowSand=PuSand/FS;
+
+    html='<div class="soil-chip soil-sand">砂土 cohesionless soil</div>'
+      +'<table><tr><th>項目</th><th>數值</th></tr>'
+      +'<tr><td>樁徑 D／樁長 L（沿用軸向頁籤）</td><td>'+f2(D)+' m ／ '+f2(L)+' m</td></tr>'
+      +'<tr><td>樁型假設</td><td>自由樁頭短剛性樁</td></tr>'
+      +'<tr><td>長細比提醒</td><td>'+shortPileNote+'</td></tr>'
+      +'<tr><td>被動土壓係數 Kp</td><td>'+f4(Kp)+'</td></tr>'
+      +'<tr><td>極限橫向承載力 Pu</td><td>'+f2(PuSand)+' kN</td></tr>'
+      +'<tr><td>安全係數 FS</td><td>'+f2(FS)+'</td></tr>'
+      +'<tr><td>容許橫向承載力 Pallow</td><td>'+f2(PallowSand)+' kN</td></tr>'
+      +'</table>';
+
+    text+='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+    text+='  橫向受荷樁極限承載力計算過程（Broms 1964，自由樁頭短剛性樁，砂土）\n';
+    text+='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+    text+='【輸入】\n';
+    text+='  土壤類型 = 砂土 cohesionless soil\n';
+    text+='  D = '+D+' m（沿用軸向頁籤）\n';
+    text+='  L = '+L+' m（沿用軸向頁籤）\n';
+    text+='  γ = '+gamma+' kN/m³\n';
+    text+='  φ = '+phi+'°\n';
+    text+='  e = '+e+' m\n';
+    text+='  FS = '+FS+'\n';
+    text+='  L/D = '+f3(slender)+'\n\n';
+    text+='【被動土壓係數】\n';
+    text+='  Kp = tan²(45 + φ/2)\n';
+    text+='     = tan²(45 + '+phi+'/2)\n';
+    text+='     = tan²('+f3(kpAngle)+'°)\n';
+    text+='     = '+f4(Kp)+'\n\n';
+    text+='【Broms 砂土公式】\n';
+    text+='  Pu = 0.5 × γ × D × Kp × L^3 / (e + L)\n';
+    text+='  (e + L) = '+e+' + '+L+' = '+f3(denom)+' m\n';
+    text+='  L^3 = '+L+'^3 = '+f3(Math.pow(L,3))+'\n';
+    text+='  Pu = 0.5 × '+gamma+' × '+D+' × '+f4(Kp)+' × '+f3(Math.pow(L,3))+' / '+f3(denom)+'\n';
+    text+='     = '+f3(PuSand)+' kN\n\n';
+    text+='【容許橫向承載力】\n';
+    text+='  Pallow = Pu / FS = '+f3(PuSand)+' / '+FS+' = '+f3(PallowSand)+' kN\n\n';
+    text+='【適用性提醒】\n';
+    text+='  本式適用自由樁頭短剛性樁之簡化估算。\n';
+    text+='  L/D = '+f3(slender)+(slender<10?' < 10，可作為短樁粗略提醒。':' ≥ 10，短樁假定可能不適用，建議改採 p-y 法或彈性地基梁分析。')+'\n';
+    text+='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+  }
+
+  result.innerHTML=html;
+  procText.textContent=text;
+  proc.style.display='';
+  if(window.innerWidth<768){var btn=document.getElementById('mobTab-lat-r');if(btn)switchMobTab('lat-r',btn);}
+}
+
+applyLateralDefaults();
+// 舊的「橫向受荷樁極限承載力計算」工具（已併入本工具）用 ?mode=lateral 導頁過來。
+if(new URLSearchParams(location.search).get('mode')==='lateral'){
+  switchPileMode('lateral');
+}
 </script>
 <script>
 window.jrhDocMeta={
  "doc": "單樁軸向承載力計算書",
  "codes": [
   "Das, B.M., Principles of Foundation Engineering — α method and β method for pile axial capacity",
-  "Meyerhof / Vesic 端承力係數理論（砂土 Nq 圖表查取）"
+  "Meyerhof / Vesic 端承力係數理論（砂土 Nq 圖表查取）",
+  "Broms, B.B. (1964), Lateral Resistance of Piles in Cohesive and Cohesionless Soils（橫向承載力頁籤適用）"
  ],
  "notes": [
   "本工具為簡化單層土壁摩擦與端承估算，未考慮分層土壤逐層加總；正式設計應依土層資料逐層計算樁身摩擦力與樁底端承力。",
   "未考慮負摩擦力（negative skin friction）、地下水位時變影響、施工擾動、樁型差異與載重試驗校核。",
   "本工具僅供單樁自身軸向容量初估；群樁效應與群樁沉陷應改用「基樁群樁效率與沉陷」工具另行評估。",
+  "橫向承載力頁籤採 Broms (1964) 自由樁頭短剛性樁簡化法，僅適用短剛性樁；若樁身相對柔性或屬長樁行為，應改用彈性地基梁法或 p-y 法分析，L/D<10僅為短樁粗略提醒、不能取代嚴謹判別。",
   "未檢核樁身結構強度、接頭、材料強度與施工品質，正式設計應由大地工程技師依詳細土層資料複核，並以現場荷重試驗驗證設計容量。",
   "本計算書應經專業技師簽證後，始得作為正式送審文件。"
  ]
